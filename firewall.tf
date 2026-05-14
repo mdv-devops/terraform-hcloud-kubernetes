@@ -140,9 +140,9 @@ resource "hcloud_firewall" "this" {
   labels = {
     cluster = var.cluster_name
   }
-  lifecycle {
-    ignore_changes = [
-      rule
-    ]
-  }
+  //  lifecycle {
+  //    ignore_changes = [
+  //      rule
+  //    ]
+  //  }
 }
