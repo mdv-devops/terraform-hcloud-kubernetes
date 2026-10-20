@@ -1,5 +1,13 @@
 # Hcloud Secret
 locals {
+  hcloud_robot_enabled = var.hcloud_robot_user != null && var.hcloud_robot_password != null
+  bare_metal_enabled   = length(var.bare_metal_nodepools) > 0
+
+  hcloud_ccm_network_routes_enabled = coalesce(
+    var.hcloud_ccm_network_routes_enabled,
+    !local.bare_metal_enabled && var.network_pod_ipv6_cidr == null
+  )
+
   hcloud_secret_manifest = {
     name = "hcloud-secret"
     contents = yamlencode({
@@ -10,10 +18,16 @@ locals {
         name      = "hcloud"
         namespace = "kube-system"
       }
-      data = {
-        network = base64encode(local.hcloud_network_id)
-        token   = base64encode(var.hcloud_token)
-      }
+      data = merge(
+        {
+          network = base64encode(local.hcloud_network_id)
+          token   = base64encode(var.hcloud_token)
+        },
+        local.hcloud_robot_enabled ? {
+          robot-user     = base64encode(var.hcloud_robot_user)
+          robot-password = base64encode(var.hcloud_robot_password)
+        } : {}
+      )
     })
   }
 }
@@ -36,11 +50,14 @@ data "helm_template" "hcloud_ccm" {
         enabled     = true
         clusterCIDR = local.network_pod_ipv4_cidr
       }
+      robot = {
+        enabled = local.bare_metal_enabled
+      }
       env = {
         HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE          = { value = var.hcloud_ccm_load_balancers_algorithm_type }
+        HCLOUD_LOAD_BALANCERS_DISABLE_IPV6            = { value = tostring(var.hcloud_ccm_load_balancers_disable_ipv6) }
         HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS = { value = tostring(var.hcloud_ccm_load_balancers_disable_private_ingress) }
         HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK  = { value = tostring(var.hcloud_ccm_load_balancers_disable_public_network) }
-        HCLOUD_LOAD_BALANCERS_DISABLE_IPV6            = { value = tostring(var.hcloud_ccm_load_balancers_disable_ipv6) }
         HCLOUD_LOAD_BALANCERS_ENABLED                 = { value = tostring(var.hcloud_ccm_load_balancers_enabled) }
         HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL   = { value = "${var.hcloud_ccm_load_balancers_health_check_interval}s" }
         HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES    = { value = tostring(var.hcloud_ccm_load_balancers_health_check_retries) }
@@ -50,7 +67,9 @@ data "helm_template" "hcloud_ccm" {
         HCLOUD_LOAD_BALANCERS_TYPE                    = { value = var.hcloud_ccm_load_balancers_type }
         HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP          = { value = tostring(var.hcloud_ccm_load_balancers_use_private_ip) }
         HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL      = { value = tostring(var.hcloud_ccm_load_balancers_uses_proxyprotocol) }
-        HCLOUD_NETWORK_ROUTES_ENABLED                 = { value = tostring(var.hcloud_ccm_network_routes_enabled) }
+        HCLOUD_NETWORK_ROUTES_ENABLED                 = { value = tostring(local.hcloud_ccm_network_routes_enabled) }
+        KUBERNETES_SERVICE_HOST                       = { value = local.kube_prism_host }
+        KUBERNETES_SERVICE_PORT                       = { value = tostring(local.kube_prism_port) }
       }
     }),
     yamlencode(var.hcloud_ccm_helm_values)
@@ -118,6 +137,9 @@ data "helm_template" "hcloud_csi" {
 
   values = [
     yamlencode({
+      global = {
+        enableProvidedByTopology = true
+      }
       controller = {
         replicaCount = local.control_plane_sum > 1 ? 2 : 1
         podDisruptionBudget = {

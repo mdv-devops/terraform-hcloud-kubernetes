@@ -25,6 +25,7 @@ output "talosconfig_data" {
 output "talos_client_configuration" {
   description = "Detailed configuration data for the Talos client."
   value       = data.talos_client_configuration.this
+  sensitive   = true
 }
 
 output "talos_machine_secrets" {
@@ -73,6 +74,11 @@ output "worker_public_ipv4_list" {
 output "worker_public_ipv6_list" {
   description = "List of public IPv6 addresses assigned to worker nodes."
   value       = local.worker_public_ipv6_list
+}
+
+output "hcloud_vswitch_id" {
+  description = "Hetzner Robot vSwitch ID used for bare metal private networking."
+  value       = local.hcloud_vswitch_id
 }
 
 output "cilium_encryption_info" {

@@ -4,32 +4,32 @@ terraform {
   required_providers {
     talos = {
       source  = "siderolabs/talos"
-      version = "0.11.0"
+      version = "0.12.0"
     }
 
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "1.60.1"
+      version = "1.70.0"
     }
 
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 3.1.0"
+      version = "~> 3.3.0"
     }
 
     http = {
       source  = "hashicorp/http"
-      version = "~> 3.5.0"
+      version = "~> 3.6.0"
     }
 
     tls = {
       source  = "hashicorp/tls"
-      version = "~> 4.2.0"
+      version = "~> 4.4.0"
     }
 
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.8.0"
+      version = "~> 3.9.0"
     }
   }
 }
