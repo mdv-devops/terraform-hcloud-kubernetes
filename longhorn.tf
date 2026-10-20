@@ -30,12 +30,13 @@ data "helm_template" "longhorn" {
     yamlencode({
       defaultSettings = {
         allowCollectingLonghornUsageMetrics = false
-        kubernetesClusterAutoscalerEnabled  = local.cluster_autoscaler_enabled
+        defaultDataPath                     = "/var/mnt/longhorn"
+        kubernetesClusterAutoscalerEnabled  = var.cluster_autoscaler_enabled
         upgradeChecker                      = false
       }
       networkPolicies = {
         enabled = true
-        type    = "rke1" # rke1 = ingress-nginx
+        type    = ""
       }
       persistence = {
         defaultClass = var.longhorn_default_storage_class
